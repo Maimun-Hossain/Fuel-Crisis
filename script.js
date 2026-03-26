@@ -166,21 +166,23 @@ function renderNavbar() {
     const nav = document.getElementById('navbar');
     if (!nav) return;
 
+    nav.className = 'glass-navbar text-white shadow-lg sticky top-0 z-40';
+
     let navLinks = '';
     if (user) {
         navLinks = `
-            <a href="dashboard.html" class="hover:text-blue-200">Dashboard</a>
-            <a href="stations.html" class="hover:text-blue-200">Stations</a>
-            <a href="token.html" class="hover:text-blue-200">Tokens</a>
-            ${user.role === 'admin' ? '<a href="admin.html" class="hover:text-blue-200">Admin</a>' : ''}
-            <button onclick="logoutUser()" class="bg-red-500 px-3 py-1 rounded hover:bg-red-600">Logout</button>
+            <a href="dashboard.html" class="hover:text-indigo-400 font-medium transition-colors">Dashboard</a>
+            <a href="stations.html" class="hover:text-indigo-400 font-medium transition-colors">Stations</a>
+            <a href="token.html" class="hover:text-indigo-400 font-medium transition-colors">Tokens</a>
+            ${user.role === 'admin' ? '<a href="admin.html" class="hover:text-indigo-400 font-medium transition-colors">Admin</a>' : ''}
+            <button onclick="logoutUser()" class="bg-rose-500/20 text-rose-400 px-5 py-1.5 rounded-xl border border-rose-500/30 hover:bg-rose-500 hover:text-white font-black transition-all">LOGOUT</button>
         `;
     }
 
     nav.innerHTML = `
         <div class="container mx-auto px-4 py-3 flex justify-between items-center">
-            <a href="dashboard.html" class="text-xl font-bold">FuelCrisis</a>
-            <div class="space-x-4 flex items-center">
+            <a href="dashboard.html" class="text-2xl font-black gradient-text tracking-tighter">FuelCrisis</a>
+            <div class="space-x-8 flex items-center text-sm">
                 ${navLinks}
             </div>
         </div>

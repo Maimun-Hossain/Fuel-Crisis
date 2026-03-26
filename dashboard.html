@@ -5,14 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard - Fuel Crisis Management System</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="styles.css">
 </head>
-<body class="bg-gray-100 min-h-screen">
-    <nav id="navbar" class="bg-blue-600 text-white shadow-lg"></nav>
+<body class="bg-[#020617] min-h-screen text-slate-200">
+    <nav id="navbar" class="glass-navbar text-white shadow-lg sticky top-0 z-40"></nav>
 
     <main class="container mx-auto px-4 py-8">
-        <h1 class="text-3xl font-bold mb-6">Welcome, <span id="userName" class="text-blue-600"></span></h1>
+        <h1 class="text-4xl font-black mb-8">Welcome, <span id="userName" class="gradient-text"></span></h1>
         
-        <div id="roleDashboard" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div id="roleDashboard" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             <!-- Role-based content will be injected here -->
         </div>
     </main>
@@ -28,110 +29,70 @@
 
             let content = '';
             if (user.role === 'user') {
-                const tokens = Storage.get('tokens').filter(t => t.userId === user.email && t.status === 'waiting');
+                const tokens = (Storage.get('tokens') || []).filter(t => t.userId === user.email && t.status === 'waiting');
                 content = `
-                    <div class="bg-white p-6 rounded-lg shadow-md">
-                        <h2 class="text-xl font-bold mb-4">Your Active Tokens</h2>
+                    <div class="glass-card p-8 animate-fade-in">
+                        <h2 class="text-2xl font-bold mb-6 text-slate-300">Your Active Tokens</h2>
                         ${tokens.length > 0 ? tokens.map(t => `
-                            <div class="border-l-4 border-blue-500 p-3 bg-blue-50 mb-2">
-                                <p class="font-bold">Token #${t.tokenNumber}</p>
-                                <p class="text-sm text-gray-600">Station ID: ${t.stationId}</p>
+                            <div class="border-l-4 border-indigo-500 p-4 bg-indigo-500/10 rounded-r-xl mb-3">
+                                <p class="font-black text-indigo-400">Token #${t.tokenNumber}</p>
+                                <p class="text-xs text-slate-500 mt-1 uppercase tracking-wider">Station ID: ${t.stationId}</p>
                             </div>
-                        `).join('') : '<p class="text-gray-500">No active tokens.</p>'}
-                        <a href="token.html" class="mt-4 inline-block bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Request Token</a>
+                        `).join('') : '<p class="text-slate-500 py-4 italic">No active tokens.</p>'}
+                        <a href="token.html" class="mt-6 inline-block btn-glow px-8 py-3 text-center">Manage Tokens</a>
                     </div>
-                    <div class="bg-white p-6 rounded-lg shadow-md">
-                        <h2 class="text-xl font-bold mb-4">Fuel Stations</h2>
-                        <p class="text-gray-600 mb-4">Check availability and vote on fuel stations.</p>
-                        <a href="stations.html" class="inline-block bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">View Stations</a>
+                    <div class="glass-card p-8 animate-fade-in" style="animation-delay: 0.1s">
+                        <h2 class="text-2xl font-bold mb-6 text-slate-300">Fuel Stations</h2>
+                        <p class="text-slate-400 mb-6">Check real-time availability and nearby stations.</p>
+                        <a href="stations.html" class="inline-block btn-secondary-glow px-8 py-3 text-center">View Stations</a>
                     </div>
                 `;
-            } else if (user.role === 'staff') {
-                const fuelLogs = Storage.get('fuelLogs');
-                const blockedUsers = Storage.get('blockedUsers');
-                const users = Storage.get('users').filter(u => u.role === 'user');
+            } else if (user.role === 'staff' || user.role === 'admin') {
+                const fuelLogs = Storage.get('fuelLogs') || [];
+                const blockedUsers = Storage.get('blockedUsers') || [];
+                const users = (Storage.get('users') || []).filter(u => u.role === 'user');
 
                 content = `
-                    <div class="bg-white p-6 rounded-lg shadow-md lg:col-span-2">
-                        <h2 class="text-xl font-bold mb-4">Fuel Update Logs</h2>
+                    <div class="glass-card p-8 lg:col-span-2 animate-fade-in">
+                        <h2 class="text-2xl font-bold mb-6 text-slate-300">Fuel Update Logs</h2>
                         <div class="overflow-x-auto">
-                            <table class="min-w-full text-sm text-left">
-                                <thead class="bg-gray-50 uppercase font-bold text-gray-500">
+                            <table class="min-w-full text-sm text-left border-separate border-spacing-y-2">
+                                <thead class="text-slate-500 uppercase text-[10px] font-black tracking-widest">
                                     <tr>
                                         <th class="px-4 py-2">Station</th>
                                         <th class="px-4 py-2">Fuel Type</th>
-                                        <th class="px-4 py-2">Amount (L)</th>
-                                        <th class="px-4 py-2">Updated By</th>
-                                        <th class="px-4 py-2">Time</th>
+                                        <th class="px-4 py-2 text-right">Amount</th>
+                                        <th class="px-4 py-2 text-right">Time</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    ${fuelLogs.length > 0 ? fuelLogs.slice(0, 10).map(log => `
-                                        <tr class="border-b">
-                                            <td class="px-4 py-2">${log.stationName}</td>
-                                            <td class="px-4 py-2">
-                                                <span class="capitalize text-xs font-bold text-blue-600">
-                                                    ${log.fuelType || 'Status'}
-                                                </span>
-                                            </td>
-                                            <td class="px-4 py-2 font-bold ${log.amount ? 'text-green-600' : ''}">
+                                    ${fuelLogs.length > 0 ? fuelLogs.slice(0, 8).map(log => `
+                                        <tr class="bg-slate-900/40 rounded-xl">
+                                            <td class="px-4 py-3 font-bold text-slate-300 rounded-l-xl">${log.stationName}</td>
+                                            <td class="px-4 py-3 uppercase text-[10px] font-black text-indigo-400">${log.fuelType || 'Status'}</td>
+                                            <td class="px-4 py-3 text-right font-black ${log.amount ? 'text-emerald-400' : 'text-slate-400'}">
                                                 ${log.amount ? `+${log.amount} L` : log.status}
                                             </td>
-                                            <td class="px-4 py-2">${log.updatedBy}</td>
-                                            <td class="px-4 py-2 text-gray-400">${new Date(log.timestamp).toLocaleTimeString()}</td>
+                                            <td class="px-4 py-3 text-right text-slate-500 rounded-r-xl">${new Date(log.timestamp).toLocaleTimeString()}</td>
                                         </tr>
-                                    `).join('') : '<tr><td colspan="5" class="p-4 text-center text-gray-500">No logs yet.</td></tr>'}
+                                    `).join('') : '<tr><td colspan="4" class="p-8 text-center text-slate-600">No logs available yet.</td></tr>'}
                                 </tbody>
                             </table>
                         </div>
                     </div>
                     
-                    <div class="bg-white p-6 rounded-lg shadow-md">
-                        <h2 class="text-xl font-bold mb-4">User Block Management</h2>
-                        <p class="text-xs text-gray-500 mb-4 uppercase font-bold tracking-wider">Restrict consecutive requests manually</p>
-                        <div class="space-y-3 max-h-64 overflow-y-auto pr-2">
-                            ${users.map(u => `
-                                <div class="flex justify-between items-center p-2 border rounded">
-                                    <div>
-                                        <p class="font-bold text-sm">${u.name}</p>
-                                        <p class="text-xs text-gray-500">${u.email}</p>
-                                    </div>
-                                    <button onclick="handleBlockToggle('${u.email}')" class="px-3 py-1 rounded text-xs font-bold transition ${blockedUsers.includes(u.email) ? 'bg-red-500 text-white hover:bg-red-600' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}">
-                                        ${blockedUsers.includes(u.email) ? 'Blocked' : 'Block'}
-                                    </button>
-                                </div>
-                            `).join('')}
+                    <div class="glass-card p-8 animate-fade-in" style="animation-delay: 0.1s">
+                        <h2 class="text-2xl font-bold mb-6 text-slate-300">Quick Actions</h2>
+                        <div class="space-y-4">
+                            <a href="stations.html" class="block w-full btn-glow py-3.5 text-center">Manage Stations</a>
+                            <a href="token.html" class="block w-full btn-secondary-glow py-3.5 text-center">Manage Queue</a>
+                            ${user.role === 'admin' ? '<a href="admin.html" class="block w-full bg-slate-800 text-white py-3.5 rounded-xl font-bold text-center border border-slate-700 hover:bg-slate-700">System Analytics</a>' : ''}
                         </div>
-                    </div>
-
-                    <div class="bg-white p-6 rounded-lg shadow-md">
-                        <h2 class="text-xl font-bold mb-4">Quick Links</h2>
-                        <div class="space-y-2">
-                            <a href="stations.html" class="block w-full text-center bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Manage Stations</a>
-                            <a href="token.html" class="block w-full text-center bg-yellow-600 text-white px-4 py-2 rounded hover:bg-yellow-700">Manage Queue</a>
-                        </div>
-                    </div>
-                `;
-            } else if (user.role === 'admin') {
-                content = `
-                    <div class="bg-white p-6 rounded-lg shadow-md">
-                        <h2 class="text-xl font-bold mb-4">System Analytics</h2>
-                        <p class="text-gray-600 mb-4">View peak hours and station usage reports.</p>
-                        <a href="admin.html" class="inline-block bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700">View Analytics</a>
-                    </div>
-                    <div class="bg-white p-6 rounded-lg shadow-md">
-                        <h2 class="text-xl font-bold mb-4">User Overview</h2>
-                        <p class="text-gray-600">Total registered users: ${Storage.get('users').length}</p>
                     </div>
                 `;
             }
             dashboard.innerHTML = content;
         });
-
-        function handleBlockToggle(email) {
-            toggleUserBlock(email);
-            location.reload();
-        }
     </script>
 </body>
 </html>

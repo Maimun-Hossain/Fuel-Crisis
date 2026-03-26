@@ -6,40 +6,44 @@
     <title>Admin Analytics - Fuel Crisis Management System</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="styles.css">
 </head>
-<body class="bg-gray-100 min-h-screen">
-    <nav id="navbar" class="bg-blue-600 text-white shadow-lg"></nav>
+<body class="bg-[#020617] min-h-screen text-slate-200">
+    <nav id="navbar" class="glass-navbar text-white shadow-lg sticky top-0 z-40"></nav>
 
     <main class="container mx-auto px-4 py-8">
-        <h1 class="text-3xl font-bold mb-6">System Analytics</h1>
+        <h1 class="text-4xl font-black mb-10 gradient-text">System Analytics</h1>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <div class="bg-white p-6 rounded-lg shadow-md border-b-4 border-blue-500">
-                <p class="text-gray-500 text-sm uppercase font-bold">Total Stations</p>
-                <p id="totalStations" class="text-3xl font-black">0</p>
+        <!-- Stats Overview -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+            <div class="glass-card p-6 animate-fade-in">
+                <p class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Total Stations</p>
+                <h3 id="totalStationsCount" class="text-4xl font-black text-slate-200">0</h3>
             </div>
-            <div class="bg-white p-6 rounded-lg shadow-md border-b-4 border-green-500">
-                <p class="text-gray-500 text-sm uppercase font-bold">Active Stations</p>
-                <p id="activeStations" class="text-3xl font-black">0</p>
+            <div class="glass-card p-6 animate-fade-in" style="animation-delay: 0.1s">
+                <p class="text-[10px] font-black text-emerald-500 uppercase tracking-widest mb-1">Active Now</p>
+                <h3 id="activeStationsCount" class="text-4xl font-black text-emerald-400">0</h3>
             </div>
-            <div class="bg-white p-6 rounded-lg shadow-md border-b-4 border-yellow-500">
-                <p class="text-gray-500 text-sm uppercase font-bold">Total Tokens</p>
-                <p id="totalTokens" class="text-3xl font-black">0</p>
+            <div class="glass-card p-6 animate-fade-in" style="animation-delay: 0.2s">
+                <p class="text-[10px] font-black text-indigo-500 uppercase tracking-widest mb-1">Tokens Issued</p>
+                <h3 id="totalTokensCount" class="text-4xl font-black text-indigo-400">0</h3>
             </div>
-            <div class="bg-white p-6 rounded-lg shadow-md border-b-4 border-purple-500">
-                <p class="text-gray-500 text-sm uppercase font-bold">Busiest Station</p>
-                <p id="busiestStation" class="text-lg font-bold truncate mt-1">N/A</p>
+            <div class="glass-card p-6 animate-fade-in" style="animation-delay: 0.3s">
+                <p class="text-[10px] font-black text-rose-500 uppercase tracking-widest mb-1">Busiest Station</p>
+                <h3 id="busiestStationName" class="text-xl font-bold text-rose-400 truncate mt-2">-</h3>
             </div>
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <div class="bg-white p-6 rounded-lg shadow-md">
-                <h2 class="text-xl font-bold mb-4">Peak Hour Analysis</h2>
-                <canvas id="peakHourChart"></canvas>
+            <div class="glass-card p-8 animate-fade-in">
+                <h2 class="text-xl font-bold mb-8 text-slate-300">Peak Demand Hours</h2>
+                <canvas id="peakHourChart" height="250"></canvas>
             </div>
-            <div class="bg-white p-6 rounded-lg shadow-md">
-                <h2 class="text-xl font-bold mb-4">Station Usage</h2>
-                <canvas id="stationUsageChart"></canvas>
+            <div class="glass-card p-8 animate-fade-in" style="animation-delay: 0.1s">
+                <h2 class="text-xl font-bold mb-8 text-slate-300">Station Usage Share</h2>
+                <div class="max-w-[300px] mx-auto">
+                    <canvas id="stationUsageChart"></canvas>
+                </div>
             </div>
         </div>
     </main>
@@ -47,69 +51,76 @@
     <script src="script.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            const user = Storage.getCurrentUser();
-            if (user?.role !== 'admin') {
-                window.location.href = 'dashboard.html';
-                return;
-            }
+            const stations = Storage.get('stations') || [];
+            const tokens = Storage.get('tokens') || [];
+            
+            document.getElementById('totalStationsCount').textContent = stations.length;
+            document.getElementById('activeStationsCount').textContent = stations.filter(s => s.availability).length;
+            document.getElementById('totalTokensCount').textContent = tokens.length;
 
-            const stations = Storage.get('stations');
-            const tokens = Storage.get('tokens');
+            const counts = {};
+            tokens.forEach(t => counts[t.stationId] = (counts[t.stationId] || 0) + 1);
+            const busiestId = Object.keys(counts).reduce((a, b) => counts[a] > counts[b] ? a : b, null);
+            document.getElementById('busiestStationName').textContent = stations.find(s => s.id === busiestId)?.name || 'None';
 
-            // Summary Stats
-            document.getElementById('totalStations').textContent = stations.length;
-            document.getElementById('activeStations').textContent = stations.filter(s => s.availability).length;
-            document.getElementById('totalTokens').textContent = tokens.length;
+            const hourData = new Array(24).fill(0);
+            tokens.forEach(t => hourData[new Date(t.createdAt).getHours()]++);
 
-            const stationTokenCounts = {};
-            tokens.forEach(t => {
-                stationTokenCounts[t.stationId] = (stationTokenCounts[t.stationId] || 0) + 1;
-            });
-            const busiestId = Object.keys(stationTokenCounts).reduce((a, b) => stationTokenCounts[a] > stationTokenCounts[b] ? a : b, null);
-            const busiestName = stations.find(s => s.id === busiestId)?.name || 'None';
-            document.getElementById('busiestStation').textContent = busiestName;
+            // Common Chart Options
+            const chartDefaults = {
+                color: '#94a3b8',
+                font: { family: "'Plus Jakarta Sans', sans-serif" }
+            };
 
-            // Peak Hour Analysis
-            const hourCounts = new Array(24).fill(0);
-            tokens.forEach(t => {
-                const hour = new Date(t.createdAt).getHours();
-                hourCounts[hour]++;
-            });
-
-            new Chart(document.getElementById('peakHourChart'), {
-                type: 'bar',
-                data: {
-                    labels: Array.from({length: 24}, (_, i) => `${i}:00`),
-                    datasets: [{
-                        label: 'Tokens Requested',
-                        data: hourCounts,
-                        backgroundColor: 'rgba(59, 130, 246, 0.5)',
-                        borderColor: 'rgb(59, 130, 246)',
-                        borderWidth: 1
-                    }]
+            const ctx1 = document.getElementById('peakHourChart').getContext('2d');
+            new Chart(ctx1, { 
+                type: 'bar', 
+                data: { 
+                    labels: hourData.map((_, i) => i + ':00'), 
+                    datasets: [{ 
+                        label: 'Tokens', 
+                        data: hourData, 
+                        backgroundColor: 'rgba(99, 102, 241, 0.6)',
+                        borderColor: '#6366f1',
+                        borderWidth: 2,
+                        borderRadius: 6
+                    }] 
                 },
                 options: {
+                    responsive: true,
+                    plugins: { legend: { display: false } },
                     scales: {
-                        y: { beginAtZero: true }
+                        y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#64748b' } },
+                        x: { grid: { display: false }, ticks: { color: '#64748b' } }
                     }
                 }
             });
 
-            // Station Usage
-            new Chart(document.getElementById('stationUsageChart'), {
-                type: 'pie',
-                data: {
-                    labels: stations.map(s => s.name),
-                    datasets: [{
-                        data: stations.map(s => stationTokenCounts[s.id] || 0),
-                        backgroundColor: [
-                            'rgba(255, 99, 132, 0.5)',
-                            'rgba(54, 162, 235, 0.5)',
-                            'rgba(255, 206, 86, 0.5)',
-                            'rgba(75, 192, 192, 0.5)',
-                            'rgba(153, 102, 255, 0.5)'
-                        ]
-                    }]
+            const ctx2 = document.getElementById('stationUsageChart').getContext('2d');
+            new Chart(ctx2, { 
+                type: 'doughnut', 
+                data: { 
+                    labels: stations.map(s => s.name), 
+                    datasets: [{ 
+                        data: stations.map(s => counts[s.id] || 0), 
+                        backgroundColor: ['#6366f1', '#06b6d4', '#f59e0b', '#ec4899', '#8b5cf6', '#10b981'],
+                        borderWidth: 0,
+                        hoverOffset: 15
+                    }] 
+                },
+                options: {
+                    cutout: '70%',
+                    plugins: { 
+                        legend: { 
+                            position: 'bottom', 
+                            labels: { 
+                                color: '#94a3b8', 
+                                padding: 20,
+                                font: { size: 11, weight: 'bold' },
+                                usePointStyle: true
+                            } 
+                        } 
+                    }
                 }
             });
         });
