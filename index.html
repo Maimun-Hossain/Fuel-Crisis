@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fuel Crisis Management System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .page-section { display: none; }
+        .page-section.active { display: block; }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <!-- Navbar -->
+    <nav id="navbar" class="bg-blue-600 text-white shadow-lg sticky top-0 z-40 hidden">
+        <div class="container mx-auto px-4 py-3 flex justify-between items-center">
+            <a href="#" onclick="navigateTo('dashboard')" class="text-xl font-bold">FuelCrisis</a>
+            <div class="space-x-4 flex items-center text-sm md:text-base">
+                <a href="#" onclick="navigateTo('dashboard')" class="hover:text-blue-200">Dashboard</a>
+                <a href="#" onclick="navigateTo('stations')" class="hover:text-blue-200">Stations</a>
+                <a href="#" onclick="navigateTo('token')" class="hover:text-blue-200">Tokens</a>
+                <div id="adminLink" class="hidden">
+                    <a href="#" onclick="navigateTo('admin')" class="hover:text-blue-200">Admin</a>
+                </div>
+                <button onclick="logoutUser()" class="bg-red-500 px-3 py-1 rounded hover:bg-red-600">Logout</button>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container mx-auto px-4 py-8">
+        
+        <!-- Login Section -->
+        <section id="loginPage" class="page-section">
+            <div class="max-w-md mx-auto bg-white p-8 rounded shadow-md mt-10">
+                <h1 class="text-2xl font-bold mb-6 text-center text-blue-600">Fuel Crisis Login</h1>
+                <form id="loginForm" class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Email</label>
+                        <input type="email" id="loginEmail" required class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Password</label>
+                        <input type="password" id="loginPassword" required class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2">
+                    </div>
+                    <button type="submit" class="w-full bg-blue-600 text-white p-2 rounded-md hover:bg-blue-700 transition">Login</button>
+                </form>
+                <p class="mt-4 text-center text-sm">
+                    Don't have an account? <a href="#" onclick="navigateTo('register')" class="text-blue-600 hover:underline">Register</a>
+                </p>
+                <div class="mt-6 p-4 bg-gray-50 rounded text-xs text-gray-500">
+                    <p class="font-bold">Test Credentials:</p>
+                    <p>Admin: admin@test.com / password</p>
+                    <p>Staff: staff@test.com / password</p>
+                    <p>User: user@test.com / password</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Register Section -->
+        <section id="registerPage" class="page-section">
+            <div class="max-w-md mx-auto bg-white p-8 rounded shadow-md mt-10">
+                <h1 class="text-2xl font-bold mb-6 text-center text-blue-600">Register</h1>
+                <form id="registerForm" class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Full Name</label>
+                        <input type="text" id="regName" required class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Email</label>
+                        <input type="email" id="regEmail" required class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Password</label>
+                        <input type="password" id="regPassword" required class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Role</label>
+                        <select id="regRole" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2">
+                            <option value="user">User</option>
+                            <option value="staff">Staff</option>
+                            <option value="admin">Admin</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="w-full bg-blue-600 text-white p-2 rounded-md hover:bg-blue-700 transition">Register</button>
+                </form>
+                <p class="mt-4 text-center text-sm">
+                    Already have an account? <a href="#" onclick="navigateTo('login')" class="text-blue-600 hover:underline">Login</a>
+                </p>
+            </div>
+        </section>
+
+        <!-- Dashboard Section -->
+        <section id="dashboardPage" class="page-section">
+            <h1 class="text-3xl font-bold mb-6 text-blue-800">Welcome, <span id="dashUserName"></span></h1>
+            <div id="roleDashboard" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Content injected by JS -->
+            </div>
+        </section>
+
+        <!-- Stations Section -->
+        <section id="stationsPage" class="page-section">
+            <div class="flex flex-col md:flex-row justify-between items-center mb-6">
+                <h1 class="text-3xl font-bold text-blue-800">Fuel Stations</h1>
+                <div id="staffOnlyActions" class="hidden mt-4 md:mt-0">
+                    <button onclick="toggleModal('addStationModal')" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 font-bold shadow-md">Add New Station</button>
+                </div>
+            </div>
+
+            <!-- Price & Search -->
+            <div class="bg-white p-4 rounded-lg shadow-md mb-6 space-y-4">
+                <div class="flex flex-col md:flex-row gap-4">
+                    <div class="flex-grow">
+                        <input type="text" id="searchInput" placeholder="Search stations or locations..." class="w-full p-2 border border-gray-300 rounded focus:ring-blue-500">
+                    </div>
+                    <select id="filterSelect" class="p-2 border border-gray-300 rounded focus:ring-blue-500">
+                        <option value="all">All Stations</option>
+                        <option value="available">Available Only</option>
+                        <option value="unavailable">Unavailable Only</option>
+                    </select>
+                </div>
+                
+                <div id="staffPricePanel" class="hidden border-t pt-4">
+                    <h2 class="text-sm font-bold mb-2 text-blue-600 uppercase tracking-widest">Update Market Fuel Prices</h2>
+                    <form id="priceForm" class="flex flex-wrap gap-4">
+                        <div class="flex items-center space-x-2">
+                            <label class="text-xs font-bold text-gray-500">PETROL (Rs):</label>
+                            <input type="number" id="petrolPriceInput" step="0.01" class="p-1 border rounded w-24 text-sm">
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <label class="text-xs font-bold text-gray-500">DIESEL (Rs):</label>
+                            <input type="number" id="dieselPriceInput" step="0.01" class="p-1 border rounded w-24 text-sm">
+                        </div>
+                        <button type="submit" class="bg-blue-600 text-white px-3 py-1 rounded text-sm font-bold">Update Prices</button>
+                    </form>
+                </div>
+            </div>
+
+            <div id="stationsList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Stations injected by JS -->
+            </div>
+        </section>
+
+        <!-- Token Section -->
+        <section id="tokenPage" class="page-section">
+            <h1 class="text-3xl font-bold mb-6 text-blue-800">Token Queue System</h1>
+            <div id="userTokenView" class="hidden mb-8">
+                <h2 class="text-xl font-bold mb-4">Your Active Token</h2>
+                <div id="activeTokenCard" class="bg-white p-6 rounded-lg shadow-md border-t-4 border-blue-600 max-w-sm mx-auto text-center"></div>
+            </div>
+            <div id="staffQueueView" class="hidden">
+                <h2 class="text-xl font-bold mb-4">Queue Management</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="stationQueues"></div>
+            </div>
+            <div id="noTokenMessage" class="hidden text-center py-20 bg-white rounded shadow">
+                <p class="text-gray-500 text-lg">You don't have any active tokens.</p>
+                <button onclick="navigateTo('stations')" class="mt-4 text-blue-600 hover:underline font-bold">Go to stations to request one.</button>
+            </div>
+        </section>
+
+        <!-- Admin Section -->
+        <section id="adminPage" class="page-section">
+            <h1 class="text-3xl font-bold mb-6 text-blue-800">System Analytics</h1>
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-6 mb-8 text-center">
+                <div class="bg-white p-4 rounded shadow-md border-b-4 border-blue-500">
+                    <p class="text-xs text-gray-400 font-bold">STATIONS</p>
+                    <p id="totalStationsCount" class="text-2xl font-black">0</p>
+                </div>
+                <div class="bg-white p-4 rounded shadow-md border-b-4 border-green-500">
+                    <p class="text-xs text-gray-400 font-bold">ACTIVE</p>
+                    <p id="activeStationsCount" class="text-2xl font-black">0</p>
+                </div>
+                <div class="bg-white p-4 rounded shadow-md border-b-4 border-yellow-500">
+                    <p class="text-xs text-gray-400 font-bold">TOKENS</p>
+                    <p id="totalTokensCount" class="text-2xl font-black">0</p>
+                </div>
+                <div class="bg-white p-4 rounded shadow-md border-b-4 border-purple-500">
+                    <p class="text-xs text-gray-400 font-bold">BUSIEST</p>
+                    <p id="busiestStationName" class="text-sm font-bold truncate">None</p>
+                </div>
+            </div>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div class="bg-white p-6 rounded shadow-md">
+                    <h2 class="text-lg font-bold mb-4">Peak Hour Analysis</h2>
+                    <canvas id="peakHourChart"></canvas>
+                </div>
+                <div class="bg-white p-6 rounded shadow-md">
+                    <h2 class="text-lg font-bold mb-4">Station Usage</h2>
+                    <canvas id="stationUsageChart"></canvas>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Modals -->
+    <div id="modalOverlay" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        
+        <!-- Add Station Modal -->
+        <div id="addStationModal" class="modal-content hidden bg-white p-6 rounded-lg shadow-xl w-full max-w-md">
+            <h2 class="text-2xl font-bold mb-4 text-blue-600">Add New Station</h2>
+            <form id="addStationForm" class="space-y-3">
+                <input type="text" id="addName" placeholder="Station Name" required class="w-full p-2 border rounded">
+                <input type="text" id="addLocation" placeholder="Location Name" required class="w-full p-2 border rounded">
+                <input type="url" id="addMap" placeholder="Google Maps URL" required class="w-full p-2 border rounded">
+                <input type="text" id="addFuels" placeholder="petrol, diesel" required class="w-full p-2 border rounded">
+                <input type="url" id="addImage" placeholder="Image URL (Optional)" class="w-full p-2 border rounded">
+                <div class="flex justify-end space-x-2 pt-2">
+                    <button type="button" onclick="closeAllModals()" class="px-4 py-2 text-gray-600">Cancel</button>
+                    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded font-bold">Save</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Edit Station Modal -->
+        <div id="editStationModal" class="modal-content hidden bg-white p-6 rounded-lg shadow-xl w-full max-w-md">
+            <h2 class="text-2xl font-bold mb-4 text-blue-600">Edit Station Info</h2>
+            <form id="editStationForm" class="space-y-3">
+                <input type="hidden" id="editId">
+                <input type="text" id="editName" required class="w-full p-2 border rounded">
+                <input type="text" id="editLocation" required class="w-full p-2 border rounded">
+                <input type="url" id="editMap" required class="w-full p-2 border rounded">
+                <input type="url" id="editImage" class="w-full p-2 border rounded">
+                <div class="flex justify-end space-x-2 pt-2">
+                    <button type="button" onclick="closeAllModals()" class="px-4 py-2 text-gray-600">Cancel</button>
+                    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded font-bold">Update</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Log Liter Modal -->
+        <div id="logLiterModal" class="modal-content hidden bg-white p-6 rounded-lg shadow-xl w-full max-w-sm">
+            <h2 class="text-2xl font-bold mb-4 text-green-600">Log Fuel Liter</h2>
+            <form id="logLiterForm" class="space-y-3">
+                <input type="hidden" id="logId">
+                <select id="logType" required class="w-full p-2 border rounded"></select>
+                <input type="number" id="logAmount" placeholder="Liters to add" required min="1" class="w-full p-2 border rounded">
+                <div class="flex justify-end space-x-2 pt-2">
+                    <button type="button" onclick="closeAllModals()" class="px-4 py-2 text-gray-600">Cancel</button>
+                    <button type="submit" class="px-4 py-2 bg-green-600 text-white rounded font-bold">Update Liter</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Review Modal -->
+        <div id="reviewModal" class="modal-content hidden bg-white p-6 rounded-lg shadow-xl w-full max-w-md">
+            <h2 class="text-2xl font-bold mb-4 text-blue-600">Post Review</h2>
+            <form id="reviewForm" class="space-y-4">
+                <input type="hidden" id="reviewId">
+                <div>
+                    <label class="block text-sm font-bold mb-2">Quality</label>
+                    <div class="flex space-x-6">
+                        <label class="flex items-center space-x-2 cursor-pointer text-green-600 font-bold">
+                            <input type="radio" name="revQuality" value="good" checked> <span>Good</span>
+                        </label>
+                        <label class="flex items-center space-x-2 cursor-pointer text-red-600 font-bold">
+                            <input type="radio" name="revQuality" value="bad"> <span>Bad</span>
+                        </label>
+                    </div>
+                </div>
+                <textarea id="revText" placeholder="Your experience..." required class="w-full p-2 border rounded h-24"></textarea>
+                <div class="flex justify-end space-x-2">
+                    <button type="button" onclick="closeAllModals()" class="px-4 py-2 text-gray-600">Cancel</button>
+                    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded font-bold">Post</button>
+                </div>
+            </form>
+        </div>
+
+    </div>
+
+    <script>
+        // --- DATA LAYER ---
+        const Storage = {
+            get: (key) => JSON.parse(localStorage.getItem(key)) || [],
+            set: (key, data) => localStorage.setItem(key, JSON.stringify(data)),
+            getUser: () => JSON.parse(localStorage.getItem('currentUser')),
+            setUser: (user) => localStorage.setItem('currentUser', JSON.stringify(user)),
+            clearUser: () => localStorage.removeItem('currentUser')
+        };
+
+        function initData() {
+            if (Storage.get('users').length === 0) {
+                Storage.set('users', [
+                    { name: 'Admin User', email: 'admin@test.com', password: 'password', role: 'admin' },
+                    { name: 'Staff User', email: 'staff@test.com', password: 'password', role: 'staff' },
+                    { name: 'Regular User', email: 'user@test.com', password: 'password', role: 'user' }
+                ]);
+            }
+            if (Storage.get('stations').length === 0) {
+                Storage.set('stations', [
+                    { id: '1', name: 'Shell City Center', location: 'Downtown', fuelTypes: ['petrol', 'diesel'], stock: { petrol: 5000, diesel: 3000 }, availability: true, lastUpdated: new Date().toISOString(), image: 'https://images.unsplash.com/photo-1545147986-a9d6f210df77?auto=format&fit=crop&q=80&w=400', mapLink: 'https://goo.gl/maps/xyz1' },
+                    { id: '2', name: 'Ceypetco Highway', location: 'Main Road', fuelTypes: ['petrol'], stock: { petrol: 0 }, availability: false, lastUpdated: new Date().toISOString(), image: 'https://images.unsplash.com/photo-1527010150264-770ba53ec3a4?auto=format&fit=crop&q=80&w=400', mapLink: 'https://goo.gl/maps/xyz2' }
+                ]);
+            }
+            if (!localStorage.getItem('fuelPrices')) {
+                Storage.set('fuelPrices', { petrol: 345.00, diesel: 310.00 });
+            }
+        }
+
+        // --- AUTH LOGIC ---
+        function loginUser(email, password) {
+            const users = Storage.get('users');
+            const user = users.find(u => u.email === email && u.password === password);
+            if (user) {
+                Storage.setUser(user);
+                navigateTo('dashboard');
+                return true;
+            }
+            alert('Invalid credentials');
+            return false;
+        }
+
+        function logoutUser() {
+            Storage.clearUser();
+            navigateTo('login');
+        }
+
+        function registerUser(name, email, password, role) {
+            const users = Storage.get('users');
+            if (users.find(u => u.email === email)) return alert('Email exists');
+            users.push({ name, email, password, role });
+            Storage.set('users', users);
+            alert('Registration successful!');
+            navigateTo('login');
+        }
+
+        // --- ROUTER & UI ---
+        function navigateTo(pageId) {
+            const user = Storage.getUser();
+            const publicPages = ['login', 'register'];
+            
+            if (!user && !publicPages.includes(pageId)) pageId = 'login';
+            if (user && publicPages.includes(pageId)) pageId = 'dashboard';
+
+            document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active'));
+            const target = document.getElementById(pageId + 'Page');
+            if (target) target.classList.add('active');
+
+            const navbar = document.getElementById('navbar');
+            if (publicPages.includes(pageId)) navbar.classList.add('hidden');
+            else navbar.classList.remove('hidden');
+
+            if (user?.role === 'admin') document.getElementById('adminLink').classList.remove('hidden');
+            else document.getElementById('adminLink').classList.add('hidden');
+
+            window.scrollTo(0, 0);
+            updatePageContent(pageId);
+        }
+
+        function updatePageContent(pageId) {
+            const user = Storage.getUser();
+            if (!user) return;
+
+            if (pageId === 'dashboard') renderDashboard(user);
+            if (pageId === 'stations') renderStations();
+            if (pageId === 'token') renderTokens(user);
+            if (pageId === 'admin') renderAdmin();
+        }
+
+        // --- VIEW RENDERS ---
+        function renderDashboard(user) {
+            document.getElementById('dashUserName').textContent = user.name;
+            const container = document.getElementById('roleDashboard');
+            let html = '';
+
+            if (user.role === 'user') {
+                const active = Storage.get('tokens').find(t => t.userId === user.email && t.status === 'waiting');
+                html = `
+                    <div class="bg-white p-6 rounded shadow">
+                        <h2 class="font-bold text-xl mb-4">Active Token</h2>
+                        ${active ? `<div class="p-4 bg-blue-50 text-blue-700 rounded font-black text-2xl text-center">#${active.tokenNumber}</div>` : '<p class="text-gray-400">No active token</p>'}
+                        <button onclick="navigateTo('stations')" class="mt-4 w-full bg-blue-600 text-white py-2 rounded">Get New Token</button>
+                    </div>
+                    <div class="bg-white p-6 rounded shadow">
+                        <h2 class="font-bold text-xl mb-4">Station Map</h2>
+                        <p class="text-gray-500 mb-4">Find nearby available fuel stations.</p>
+                        <button onclick="navigateTo('stations')" class="w-full bg-green-600 text-white py-2 rounded">View List</button>
+                    </div>
+                `;
+            } else if (user.role === 'staff') {
+                html = `
+                    <div class="bg-white p-6 rounded shadow">
+                        <h2 class="font-bold text-xl mb-4">Queue Management</h2>
+                        <button onclick="navigateTo('token')" class="w-full bg-yellow-600 text-white py-2 rounded font-bold">Manage Users</button>
+                    </div>
+                    <div class="bg-white p-6 rounded shadow">
+                        <h2 class="font-bold text-xl mb-4">Update Stocks</h2>
+                        <button onclick="navigateTo('stations')" class="w-full bg-blue-600 text-white py-2 rounded font-bold">Go to Stations</button>
+                    </div>
+                `;
+            } else {
+                html = `<div class="bg-white p-6 rounded shadow col-span-full text-center">
+                    <p class="text-gray-500 mb-4">System Administrator Access</p>
+                    <button onclick="navigateTo('admin')" class="bg-purple-600 text-white px-8 py-2 rounded font-bold">View Analytics</button>
+                </div>`;
+            }
+            container.innerHTML = html;
+        }
+
+        function renderStations() {
+            const user = Storage.getUser();
+            const stations = Storage.get('stations');
+            const prices = Storage.get('fuelPrices');
+            const votes = Storage.get('votes');
+            const comments = Storage.get('comments');
+            const query = document.getElementById('searchInput').value.toLowerCase();
+            const filter = document.getElementById('filterSelect').value;
+
+            if (user.role === 'staff' || user.role === 'admin') {
+                document.getElementById('staffOnlyActions').classList.remove('hidden');
+                document.getElementById('staffPricePanel').classList.remove('hidden');
+                document.getElementById('petrolPriceInput').value = prices.petrol;
+                document.getElementById('dieselPriceInput').value = prices.diesel;
+            }
+
+            const list = document.getElementById('stationsList');
+            const filtered = stations.filter(s => {
+                const matchSearch = s.name.toLowerCase().includes(query) || s.location.toLowerCase().includes(query);
+                const matchFilter = filter === 'all' || (filter === 'available' && s.availability) || (filter === 'unavailable' && !s.availability);
+                return matchSearch && matchFilter;
+            });
+
+            list.innerHTML = filtered.map(s => {
+                const sVotes = votes.filter(v => v.stationId === s.id);
+                const ups = sVotes.filter(v => v.vote === 'upvote').length;
+                const downs = sVotes.filter(v => v.vote === 'downvote').length;
+                const userVote = sVotes.find(v => v.userId === user.email)?.vote;
+                const sComments = comments.filter(c => c.stationId === s.id);
+                const goods = sComments.filter(c => c.type === 'good').length;
+                const bads = sComments.filter(c => c.type === 'bad').length;
+
+                return `
+                    <div class="bg-white rounded shadow-lg overflow-hidden flex flex-col">
+                        <img src="${s.image}" class="w-full h-40 object-cover">
+                        <div class="p-3 ${s.availability ? 'bg-green-100' : 'bg-red-100'} flex justify-between items-center">
+                            <span class="font-bold">${s.name}</span>
+                            <span class="text-[10px] uppercase font-black ${s.availability ? 'text-green-700' : 'text-red-700'}">${s.availability ? 'Available' : 'No Stock'}</span>
+                        </div>
+                        <div class="p-4 flex-grow">
+                            <div class="flex justify-between items-start mb-3">
+                                <span class="text-sm text-gray-500 font-bold">${s.location}</span>
+                                <a href="${s.mapLink}" target="_blank" class="text-[10px] bg-blue-50 text-blue-600 px-2 py-1 rounded border border-blue-100 font-bold">MAP</a>
+                            </div>
+                            <div class="space-y-2 mb-4">
+                                ${s.fuelTypes.map(ft => `
+                                    <div class="flex justify-between items-center text-sm">
+                                        <span class="capitalize text-gray-400 font-bold">${ft}</span>
+                                        <div class="space-x-3">
+                                            <span class="font-black text-blue-600">${s.stock[ft]}L</span>
+                                            <span class="text-[10px] text-gray-400">Rs.${prices[ft].toFixed(2)}</span>
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                            <div class="flex justify-between text-[10px] text-gray-400 mb-4 border-t pt-2">
+                                <span>Updated: ${new Date(s.lastUpdated).toLocaleTimeString()}</span>
+                                <div class="space-x-2">
+                                    <span class="text-green-500">Good: ${goods}</span>
+                                    <span class="text-red-500">Bad: ${bads}</span>
+                                </div>
+                            </div>
+                            <div class="flex justify-between items-center mb-4">
+                                <div class="flex space-x-1">
+                                    <button onclick="handleVote('${s.id}', 'upvote')" class="p-1 px-2 rounded border ${userVote === 'upvote' ? 'bg-green-500 text-white' : 'bg-gray-50'} text-xs">👍 ${ups}</button>
+                                    <button onclick="handleVote('${s.id}', 'downvote')" class="p-1 px-2 rounded border ${userVote === 'downvote' ? 'bg-red-500 text-white' : 'bg-gray-50'} text-xs">👎 ${downs}</button>
+                                </div>
+                                ${user.role === 'user' ? `<button onclick="openReviewModal('${s.id}')" class="text-xs font-bold text-blue-600">REVIEW</button>` : ''}
+                            </div>
+                            <div class="space-y-2">
+                                ${user.role === 'user' ? `<button onclick="handleTokenRequest('${s.id}')" class="w-full bg-blue-600 text-white py-2 rounded font-bold shadow-sm">REQUEST TOKEN</button>` : ''}
+                                ${user.role === 'staff' ? `
+                                    <div class="grid grid-cols-2 gap-2">
+                                        <button onclick="openLogLiterModal('${s.id}')" class="bg-green-600 text-white py-1.5 rounded text-xs font-bold">LOG LITER</button>
+                                        <button onclick="toggleAvailability('${s.id}')" class="bg-gray-800 text-white py-1.5 rounded text-xs font-bold">TOGGLE STATUS</button>
+                                        <button onclick="openEditModal('${s.id}')" class="bg-blue-500 text-white py-1.5 rounded text-xs font-bold">EDIT INFO</button>
+                                        <button onclick="handleDeleteStation('${s.id}')" class="bg-red-600 text-white py-1.5 rounded text-xs font-bold">DELETE</button>
+                                    </div>
+                                ` : ''}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function renderTokens(user) {
+            const tokens = Storage.get('tokens');
+            const stations = Storage.get('stations');
+            
+            if (user.role === 'user') {
+                document.getElementById('userTokenView').classList.remove('hidden');
+                document.getElementById('staffQueueView').classList.add('hidden');
+                const active = tokens.find(t => t.userId === user.email && t.status === 'waiting');
+                const card = document.getElementById('activeTokenCard');
+                const noMsg = document.getElementById('noTokenMessage');
+
+                if (active) {
+                    const s = stations.find(x => x.id === active.stationId);
+                    const pos = tokens.filter(t => t.stationId === active.stationId && t.status === 'waiting').sort((a,b) => a.tokenNumber - b.tokenNumber).findIndex(t => t.id === active.id) + 1;
+                    card.innerHTML = `<p class="uppercase text-xs font-bold text-gray-400 mb-1">${s?.name}</p><div class="text-6xl font-black text-blue-600 mb-4">#${active.tokenNumber}</div><div class="bg-blue-50 py-2 rounded text-blue-800 font-bold mb-2">Queue Position: ${pos}</div><p class="text-[10px] text-gray-400">Time: ${new Date(active.createdAt).toLocaleTimeString()}</p>`;
+                    card.classList.remove('hidden'); noMsg.classList.add('hidden');
+                } else {
+                    card.classList.add('hidden'); noMsg.classList.remove('hidden');
+                }
+            } else {
+                document.getElementById('userTokenView').classList.add('hidden');
+                document.getElementById('staffQueueView').classList.remove('hidden');
+                const container = document.getElementById('stationQueues');
+                container.innerHTML = stations.map(s => {
+                    const queue = tokens.filter(t => t.stationId === s.id && t.status === 'waiting').sort((a,b) => a.tokenNumber - b.tokenNumber);
+                    const next = queue[0];
+                    return `<div class="bg-white p-6 rounded shadow">
+                        <h3 class="font-bold border-b pb-2 mb-4">${s.name}</h3>
+                        <div class="flex justify-between items-center mb-6">
+                            <div><p class="text-xs text-gray-400 font-bold">WAITING</p><p class="text-3xl font-black">${queue.length}</p></div>
+                            ${next ? `<div><p class="text-xs text-gray-400 font-bold text-right">NEXT</p><p class="text-3xl font-black text-green-600">#${next.tokenNumber}</p></div>` : ''}
+                        </div>
+                        <div class="flex gap-2">
+                            <button onclick="handleServe('${s.id}')" ${!next ? 'disabled' : ''} class="flex-grow bg-blue-600 text-white py-2 rounded font-bold disabled:bg-gray-200">CALL NEXT</button>
+                        </div>
+                    </div>`;
+                }).join('');
+            }
+        }
+
+        function renderAdmin() {
+            const stations = Storage.get('stations');
+            const tokens = Storage.get('tokens');
+            
+            document.getElementById('totalStationsCount').textContent = stations.length;
+            document.getElementById('activeStationsCount').textContent = stations.filter(s => s.availability).length;
+            document.getElementById('totalTokensCount').textContent = tokens.length;
+
+            const counts = {};
+            tokens.forEach(t => counts[t.stationId] = (counts[t.stationId] || 0) + 1);
+            const busiestId = Object.keys(counts).reduce((a, b) => counts[a] > counts[b] ? a : b, null);
+            document.getElementById('busiestStationName').textContent = stations.find(s => s.id === busiestId)?.name || 'None';
+
+            const hourData = new Array(24).fill(0);
+            tokens.forEach(t => hourData[new Date(t.createdAt).getHours()]++);
+
+            const ctx1 = document.getElementById('peakHourChart').getContext('2d');
+            if (window.myChart1) window.myChart1.destroy();
+            window.myChart1 = new Chart(ctx1, { type: 'bar', data: { labels: hourData.map((_, i) => i + ':00'), datasets: [{ label: 'Tokens', data: hourData, backgroundColor: '#3b82f6' }] } });
+
+            const ctx2 = document.getElementById('stationUsageChart').getContext('2d');
+            if (window.myChart2) window.myChart2.destroy();
+            window.myChart2 = new Chart(ctx2, { type: 'pie', data: { labels: stations.map(s => s.name), datasets: [{ data: stations.map(s => counts[s.id] || 0), backgroundColor: ['#ef4444', '#10b981', '#f59e0b', '#3b82f6', '#8b5cf6'] }] } });
+        }
+
+        // --- ACTIONS ---
+        function handleVote(sId, type) {
+            const user = Storage.getUser();
+            const votes = Storage.get('votes');
+            const idx = votes.findIndex(v => v.stationId === sId && v.userId === user.email);
+            if (idx !== -1) {
+                if (votes[idx].vote === type) votes.splice(idx, 1);
+                else votes[idx].vote = type;
+            } else {
+                votes.push({ stationId: sId, userId: user.email, vote: type });
+            }
+            Storage.set('votes', votes);
+            renderStations();
+        }
+
+        function handleTokenRequest(sId) {
+            const user = Storage.getUser();
+            if (Storage.get('blockedUsers').includes(user.email)) return alert('You are blocked');
+            const tokens = Storage.get('tokens');
+            if (tokens.some(t => t.userId === user.email && t.status === 'waiting')) return alert('You have a waiting token');
+            
+            const userTokens = tokens.filter(t => t.userId === user.email && t.status === 'served');
+            const last = userTokens.sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt))[0];
+            if (last && (new Date() - new Date(last.createdAt)) < 7200000) return alert('2-hour cooldown');
+
+            const sTokens = tokens.filter(t => t.stationId === sId);
+            const num = sTokens.length > 0 ? Math.max(...sTokens.map(t => t.tokenNumber)) + 1 : 1;
+
+            tokens.push({ id: Date.now().toString(), userId: user.email, stationId: sId, tokenNumber: num, status: 'waiting', createdAt: new Date().toISOString() });
+            Storage.set('tokens', tokens);
+            alert('Token Generated!');
+            navigateTo('token');
+        }
+
+        function handleServe(sId) {
+            const all = Storage.get('tokens');
+            const idx = all.findIndex(t => t.stationId === sId && t.status === 'waiting');
+            if (idx !== -1) {
+                all[idx].status = 'served';
+                Storage.set('tokens', all);
+                renderTokens(Storage.getUser());
+            }
+        }
+
+        function toggleAvailability(sId) {
+            const stations = Storage.get('stations');
+            const s = stations.find(x => x.id === sId);
+            s.availability = !s.availability;
+            s.lastUpdated = new Date().toISOString();
+            Storage.set('stations', stations);
+            renderStations();
+        }
+
+        function handleDeleteStation(sId) {
+            if (confirm('Delete Station?')) {
+                Storage.set('stations', Storage.get('stations').filter(s => s.id !== sId));
+                renderStations();
+            }
+        }
+
+        // --- MODAL CONTROLS ---
+        function toggleModal(id) {
+            document.getElementById('modalOverlay').classList.remove('hidden');
+            document.querySelectorAll('.modal-content').forEach(m => m.classList.add('hidden'));
+            document.getElementById(id).classList.remove('hidden');
+        }
+
+        function closeAllModals() {
+            document.getElementById('modalOverlay').classList.add('hidden');
+        }
+
+        function openEditModal(id) {
+            const s = Storage.get('stations').find(x => x.id === id);
+            document.getElementById('editId').value = id;
+            document.getElementById('editName').value = s.name;
+            document.getElementById('editLocation').value = s.location;
+            document.getElementById('editMap').value = s.mapLink;
+            document.getElementById('editImage').value = s.image;
+            toggleModal('editStationModal');
+        }
+
+        function openLogLiterModal(id) {
+            const s = Storage.get('stations').find(x => x.id === id);
+            document.getElementById('logId').value = id;
+            const select = document.getElementById('logType');
+            select.innerHTML = s.fuelTypes.map(t => `<option value="${t}">${t.toUpperCase()}</option>`).join('');
+            toggleModal('logLiterModal');
+        }
+
+        function openReviewModal(id) {
+            document.getElementById('reviewId').value = id;
+            toggleModal('reviewModal');
+        }
+
+        // --- FORMS ---
+        document.getElementById('loginForm').onsubmit = e => { e.preventDefault(); loginUser(document.getElementById('loginEmail').value, document.getElementById('loginPassword').value); };
+        document.getElementById('registerForm').onsubmit = e => { e.preventDefault(); registerUser(document.getElementById('regName').value, document.getElementById('regEmail').value, document.getElementById('regPassword').value, document.getElementById('regRole').value); };
+        document.getElementById('addStationForm').onsubmit = e => {
+            e.preventDefault();
+            const stations = Storage.get('stations');
+            const types = document.getElementById('addFuels').value.split(',').map(x => x.trim().toLowerCase());
+            const stock = {}; types.forEach(t => stock[t] = 0);
+            stations.push({
+                id: Date.now().toString(), name: document.getElementById('addName').value, location: document.getElementById('addLocation').value,
+                mapLink: document.getElementById('addMap').value, fuelTypes: types, stock: stock, availability: true,
+                image: document.getElementById('addImage').value || 'https://images.unsplash.com/photo-1545147986-a9d6f210df77?w=400', lastUpdated: new Date().toISOString()
+            });
+            Storage.set('stations', stations);
+            closeAllModals(); renderStations(); e.target.reset();
+        };
+        document.getElementById('editStationForm').onsubmit = e => {
+            e.preventDefault();
+            const stations = Storage.get('stations');
+            const s = stations.find(x => x.id === document.getElementById('editId').value);
+            s.name = document.getElementById('editName').value;
+            s.location = document.getElementById('editLocation').value;
+            s.mapLink = document.getElementById('editMap').value;
+            s.image = document.getElementById('editImage').value;
+            Storage.set('stations', stations);
+            closeAllModals(); renderStations();
+        };
+        document.getElementById('logLiterForm').onsubmit = e => {
+            e.preventDefault();
+            const stations = Storage.get('stations');
+            const s = stations.find(x => x.id === document.getElementById('logId').value);
+            const type = document.getElementById('logType').value;
+            const amt = parseInt(document.getElementById('logAmount').value);
+            s.stock[type] += amt; s.availability = true;
+            s.lastUpdated = new Date().toISOString();
+            Storage.set('stations', stations);
+            closeAllModals(); renderStations(); e.target.reset();
+        };
+        document.getElementById('reviewForm').onsubmit = e => {
+            e.preventDefault();
+            const revs = Storage.get('comments');
+            revs.unshift({ stationId: document.getElementById('reviewId').value, userName: Storage.getUser().name, type: document.querySelector('input[name="revQuality"]:checked').value, text: document.getElementById('revText').value, timestamp: new Date().toISOString() });
+            Storage.set('comments', revs);
+            closeAllModals(); renderStations(); e.target.reset();
+        };
+        document.getElementById('priceForm').onsubmit = e => {
+            e.preventDefault();
+            Storage.set('fuelPrices', { petrol: parseFloat(document.getElementById('petrolPriceInput').value), diesel: parseFloat(document.getElementById('dieselPriceInput').value) });
+            alert('Prices Updated!'); renderStations();
+        };
+        document.getElementById('searchInput').oninput = renderStations;
+        document.getElementById('filterSelect').onchange = renderStations;
+
+        // --- INIT ---
+        window.onload = () => {
+            initData();
+            navigateTo('login');
+        };
+    </script>
+</body>
+</html>

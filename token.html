@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tokens - Fuel Crisis Management System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <nav id="navbar" class="bg-blue-600 text-white shadow-lg"></nav>
+
+    <main class="container mx-auto px-4 py-8">
+        <h1 class="text-3xl font-bold mb-6">Token Queue System</h1>
+
+        <div id="userTokenView" class="hidden mb-8">
+            <h2 class="text-xl font-bold mb-4">Your Active Token</h2>
+            <div id="activeTokenCard" class="bg-white p-6 rounded-lg shadow-md border-t-4 border-blue-600 max-w-sm mx-auto text-center">
+                <!-- User token info -->
+            </div>
+        </div>
+
+        <div id="staffQueueView" class="hidden">
+            <h2 class="text-xl font-bold mb-4">Station Queue Management</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6" id="stationQueues">
+                <!-- Staff queue management cards -->
+            </div>
+        </div>
+
+        <div id="noTokenMessage" class="hidden text-center py-20">
+            <p class="text-gray-500 text-lg">You don't have any active tokens.</p>
+            <a href="stations.html" class="mt-4 inline-block text-blue-600 hover:underline">Go to stations to request one.</a>
+        </div>
+    </main>
+
+    <script src="script.js"></script>
+    <script>
+        const user = Storage.getCurrentUser();
+        const tokens = Storage.get('tokens');
+        const stations = Storage.get('stations');
+
+        function renderUserToken() {
+            const activeToken = tokens.find(t => t.userId === user.email && t.status === 'waiting');
+            const userView = document.getElementById('userTokenView');
+            const noToken = document.getElementById('noTokenMessage');
+
+            if (activeToken) {
+                userView.classList.remove('hidden');
+                noToken.classList.add('hidden');
+                
+                const station = stations.find(s => s.id === activeToken.stationId);
+                const stationTokens = tokens.filter(t => t.stationId === activeToken.stationId && t.status === 'waiting');
+                const position = stationTokens.sort((a, b) => a.tokenNumber - b.tokenNumber).findIndex(t => t.id === activeToken.id) + 1;
+
+                document.getElementById('activeTokenCard').innerHTML = `
+                    <p class="text-sm text-gray-500 uppercase tracking-wide mb-1">${station ? station.name : 'Unknown Station'}</p>
+                    <div class="text-6xl font-black text-blue-600 my-4">#${activeToken.tokenNumber}</div>
+                    <div class="bg-blue-50 p-3 rounded mb-4">
+                        <p class="text-sm font-medium text-blue-800">Queue Position: ${position}</p>
+                    </div>
+                    <p class="text-xs text-gray-400">Requested: ${new Date(activeToken.createdAt).toLocaleString()}</p>
+                `;
+            } else {
+                userView.classList.add('hidden');
+                noToken.classList.remove('hidden');
+            }
+        }
+
+        function renderStaffQueue() {
+            const staffView = document.getElementById('staffQueueView');
+            staffView.classList.remove('hidden');
+            const container = document.getElementById('stationQueues');
+
+            container.innerHTML = stations.map(s => {
+                const stationTokens = tokens.filter(t => t.stationId === s.id && t.status === 'waiting')
+                                            .sort((a, b) => a.tokenNumber - b.tokenNumber);
+                const nextToken = stationTokens[0];
+
+                return `
+                    <div class="bg-white p-6 rounded-lg shadow-md">
+                        <h3 class="font-bold text-lg mb-4">${s.name}</h3>
+                        <div class="flex justify-between items-center mb-4">
+                            <div>
+                                <p class="text-sm text-gray-500">Waiting in queue</p>
+                                <p class="text-2xl font-bold">${stationTokens.length}</p>
+                            </div>
+                            ${nextToken ? `
+                                <div class="text-right">
+                                    <p class="text-sm text-gray-500">Next Token</p>
+                                    <p class="text-2xl font-bold text-green-600">#${nextToken.tokenNumber}</p>
+                                </div>
+                            ` : ''}
+                        </div>
+                        <div class="flex space-x-2">
+                            <button onclick="serveNext('${s.id}')" ${!nextToken ? 'disabled' : ''} class="flex-grow bg-blue-600 text-white py-2 rounded hover:bg-blue-700 disabled:bg-gray-300">
+                                Call Next
+                            </button>
+                            <button onclick="markServed('${s.id}')" ${!nextToken ? 'disabled' : ''} class="flex-grow border border-blue-600 text-blue-600 py-2 rounded hover:bg-blue-50 disabled:border-gray-300 disabled:text-gray-300">
+                                Mark Served
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function serveNext(stationId) {
+            // In a real system "Call Next" might just notify. 
+            // Here we'll just alert and maybe highlight, but "Mark Served" actually changes status.
+            const stationTokens = tokens.filter(t => t.stationId === stationId && t.status === 'waiting')
+                                        .sort((a, b) => a.tokenNumber - b.tokenNumber);
+            if (stationTokens.length > 0) {
+                alert(`Calling Token #${stationTokens[0].tokenNumber} at ${stations.find(s => s.id === stationId).name}`);
+            }
+        }
+
+        function markServed(stationId) {
+            const stationTokens = tokens.filter(t => t.stationId === stationId && t.status === 'waiting')
+                                        .sort((a, b) => a.tokenNumber - b.tokenNumber);
+            if (stationTokens.length > 0) {
+                const tokenToServe = stationTokens[0];
+                const allTokens = Storage.get('tokens');
+                const tokenIndex = allTokens.findIndex(t => t.id === tokenToServe.id);
+                allTokens[tokenIndex].status = 'served';
+                Storage.set('tokens', allTokens);
+                location.reload();
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            if (user.role === 'user') {
+                renderUserToken();
+            } else if (user.role === 'staff' || user.role === 'admin') {
+                renderStaffQueue();
+            }
+        });
+    </script>
+</body>
+</html>
